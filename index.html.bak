@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat app</title>
+  <link rel="stylesheet" href="./styles/bootstrap.css">
+  <link rel="stylesheet" href="./styles/style.css" />
+  <script src="./node_modules/jquery/dist/jquery.js"></script>
+  <script src="./node_modules/socket.io/client-dist/socket.io.js"></script>
+  <script src="./node_modules/socketio-file-upload/client.js"></script>
+  <script>
+    var dname = "";
+    $(() => {
+      var socket = io.connect("http://localhost:8111");
+      socket.on("connect", () => {
+        console.log("connected");
+      });
+      var siofu = new SocketIOFileUpload(socket);
+      siofu.listenOnInput(document.getElementById("uploadfile"));
+      siofu.listenOnDrop(document.getElementById("drop"));
+      socket.on("connected", (msg) => {
+        $("#connect").show();
+      });
+      socket.on("updateusers", (userlist) => {
+        $("#chatzone").show();
+        $("#connect").hide();
+        console.log(userlist);
+        $("#users").empty();
+        userlist.forEach((u) => {
+          $("#users").append(
+            `<li class="list-group-item">${u}</li>`
+          );
+        });
+      });
+      socket.on("message", (data) => {
+        console.log(data);
+        $("#msgs").append(
+          `<li class="list-item">From ${data.f}: ${data.m}</li>`
+        );
+      });
+      socket.on("uploaded", (data) => {
+        console.log(data.length);
+        var name = '...' + data.substring(data.length - 10);
+        console.log(name);
+        $("#files").append(`<div class='box'>
+                          <img src='/Uploads/icon.png' width='100' />
+                          <span>${name}</span>
+                          <span><a href='/Uploads/${data}' target='_blank'>Download</a></span>
+                          </div>`)
+
+      });
+      $("#join").click(() => {
+        socket.emit("addme", $("#dname").val());
+        dname = $("#dname").val();
+      });
+      $("#send").click(() => {
+        if ($("#m").val() != "")
+          socket.emit("send", {
+            f: dname,
+            m: $("#m").val(),
+          });
+        $("#m").val("");
+      });
+      $("#upload").click(() => {
+        $("#uploadfile").trigger("click");
+      });
+      siofu.addEventListener("complete", function (event) {
+        $("#files").append(`<div class='box'>
+                          <img src='/Uploads/icon.png' width='100' />
+                          <span>${event.file.name}</span>
+                          <span><a href='/Uploads/${event.file.name}' target='_blank'>Download</a></span>
+                          </div>`)
+      });
+    });
+  </script>
+</head>
+
+<body>
+  <nav class="navbar navbar-dark bg-primary">
+    <div class="container-fluid d-flex justify-content-center">
+      <span class="navbar-brand h1 text-center">ChatBox</span>
+    </div>
+  </nav>
+  <div class="container my-1" id="connect" style="display: none">
+    <h1 class="text-center">ID:1267759</h1>
+    <div class="row">
+      <label for="colFormLabelLg" class="col-sm-2 col-form-label col-form-label-lg">Nickname</label>
+      <div class="col-10">
+        <input id="dname"  type="email" class="form-control form-control-lg" id="colFormLabelLg">
+      </div>
+      <div class="col-12 d-flex justify-content-center m-1">
+        <button id="join" type="submit" class="btn btn-primary">Join</button>
+      </div>
+    </div>
+  </div>
+  <div class="container" id="chatzone" style="display: none">
+    <div class="row">
+      <div class="col-2">
+        <div class="collection_1" id="ulist">
+          <h5>Connected</h5>
+          <ol id="users" class="list-group list-group-numbered">
+            <li class="list-group-item"></li>
+          </ol>
+        </div>
+      </div>
+      <div class="col-5">
+        <div class="row">
+          <label for="m" class="col-form-label text-center">Message</label>
+          <div class="input-group my-1">
+            <input id="m" type="text" class="form-control">
+            <button id="send" class="btn btn-primary" type="button">Send</button>
+          </div>
+        </div>
+        <div class="row">
+            <ul id="msgs" class="list"></ul>
+        </div>
+      </div>
+      <div class="col-5">
+        <label class="col-form-label text-center">Files</label>
+        <div class="row my-1">
+          <div class="col-8 border border-primary">
+            <div class="drop p-2" id="drop">Drop file</div>
+          </div>
+          <button id="upload" class="col-4 btn btn-primary" type="button">Upload</button>
+          
+        </div>
+        <div class="row">
+            <div class="files" id="files"></div>
+        </div>
+      </div>
+     
+    </div>
+  </div>
+  <input type="file" id="uploadfile" style="display: none" />
+  <script src="./scripts/bootstrap.bundle.js"></script>
+</body>
+
+</html>
